@@ -123,7 +123,8 @@ def main(args):
 
     start_epoch = 0
     total_step = int(len(trainset) / cfg.batch_size / world_size * cfg.num_epoch)
-    if rank == 0: logging.info("Total Step is: %d" % total_step)
+    if rank == 0: 
+        logging.info("Total Step is: %d" % total_step)
 
     if args.resume:
         rem_steps = (total_step - cfg.global_step)
