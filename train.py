@@ -22,12 +22,25 @@ from backbones.iresnet import iresnet100, iresnet50
 
 torch.backends.cudnn.benchmark = True
 
+try:
+    rank = int(os.environ["RANK"])
+    local_rank = int(os.environ["LOCAL_RANK"])
+    world_size = int(os.environ["WORLD_SIZE"])
+    dist.init_process_group("nccl")
+except KeyError:
+    rank = 0
+    local_rank = 0
+    world_size = 1
+    dist.init_process_group(
+        backend="nccl",
+        init_method="tcp://127.0.0.1:12584",
+        rank=rank,
+        world_size=world_size,
+    )
+
 def main(args):
-    dist.init_process_group(backend='nccl', init_method='env://')
-    local_rank = args.local_rank
+    
     torch.cuda.set_device(local_rank)
-    rank = dist.get_rank()
-    world_size = dist.get_world_size()
 
     if not os.path.exists(cfg.output) and rank == 0:
         os.makedirs(cfg.output)
