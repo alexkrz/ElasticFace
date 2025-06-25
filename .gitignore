@@ -2,8 +2,14 @@
 /.vscode
 .idea
 
+# Artifacts
+__pycache__/
+
+# System
+.DS_Store
+
+# Results
 output/
 output_features/
 output_features_clean/
 cmc_roc_results/
-.DS_Store
