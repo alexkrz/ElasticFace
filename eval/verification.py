@@ -226,6 +226,7 @@ def load_bin(path, image_size):
 @torch.no_grad()
 def test(data_set, backbone, batch_size, nfolds=10):
     print('testing verification..')
+    device = next(backbone.parameters()).device
     data_list = data_set[0]
     issame_list = data_set[1]
     embeddings_list = []
@@ -240,7 +241,7 @@ def test(data_set, backbone, batch_size, nfolds=10):
             _data = data[bb - batch_size: bb]
             time0 = datetime.datetime.now()
             img = ((_data / 255) - 0.5) / 0.5
-            net_out: torch.Tensor = backbone(img)
+            net_out: torch.Tensor = backbone(img.to(device))
             _embeddings = net_out.detach().cpu().numpy()
             time_now = datetime.datetime.now()
             diff = time_now - time0
@@ -274,51 +275,51 @@ def test(data_set, backbone, batch_size, nfolds=10):
     return acc1, std1, acc2, std2, _xnorm, embeddings_list
 
 
-def dumpR(data_set,
-          backbone,
-          batch_size,
-          name='',
-          data_extra=None,
-          label_shape=None):
-    print('dump verification embedding..')
-    data_list = data_set[0]
-    issame_list = data_set[1]
-    embeddings_list = []
-    time_consumed = 0.0
-    for i in range(len(data_list)):
-        data = data_list[i]
-        embeddings = None
-        ba = 0
-        while ba < data.shape[0]:
-            bb = min(ba + batch_size, data.shape[0])
-            count = bb - ba
+# def dumpR(data_set,
+#           backbone,
+#           batch_size,
+#           name='',
+#           data_extra=None,
+#           label_shape=None):
+#     print('dump verification embedding..')
+#     data_list = data_set[0]
+#     issame_list = data_set[1]
+#     embeddings_list = []
+#     time_consumed = 0.0
+#     for i in range(len(data_list)):
+#         data = data_list[i]
+#         embeddings = None
+#         ba = 0
+#         while ba < data.shape[0]:
+#             bb = min(ba + batch_size, data.shape[0])
+#             count = bb - ba
 
-            _data = nd.slice_axis(data, axis=0, begin=bb - batch_size, end=bb)
-            time0 = datetime.datetime.now()
-            if data_extra is None:
-                db = mx.io.DataBatch(data=(_data,), label=(_label,))
-            else:
-                db = mx.io.DataBatch(data=(_data, _data_extra),
-                                     label=(_label,))
-            model.forward(db, is_train=False)
-            net_out = model.get_outputs()
-            _embeddings = net_out[0].asnumpy()
-            time_now = datetime.datetime.now()
-            diff = time_now - time0
-            time_consumed += diff.total_seconds()
-            if embeddings is None:
-                embeddings = np.zeros((data.shape[0], _embeddings.shape[1]))
-            embeddings[ba:bb, :] = _embeddings[(batch_size - count):, :]
-            ba = bb
-        embeddings_list.append(embeddings)
-    embeddings = embeddings_list[0] + embeddings_list[1]
-    embeddings = sklearn.preprocessing.normalize(embeddings)
-    actual_issame = np.asarray(issame_list)
-    outname = os.path.join('temp.bin')
-    with open(outname, 'wb') as f:
-        pickle.dump((embeddings, issame_list),
-                    f,
-                    protocol=pickle.HIGHEST_PROTOCOL)
+#             _data = nd.slice_axis(data, axis=0, begin=bb - batch_size, end=bb)
+#             time0 = datetime.datetime.now()
+#             if data_extra is None:
+#                 db = mx.io.DataBatch(data=(_data,), label=(_label,))
+#             else:
+#                 db = mx.io.DataBatch(data=(_data, _data_extra),
+#                                      label=(_label,))
+#             model.forward(db, is_train=False)
+#             net_out = model.get_outputs()
+#             _embeddings = net_out[0].asnumpy()
+#             time_now = datetime.datetime.now()
+#             diff = time_now - time0
+#             time_consumed += diff.total_seconds()
+#             if embeddings is None:
+#                 embeddings = np.zeros((data.shape[0], _embeddings.shape[1]))
+#             embeddings[ba:bb, :] = _embeddings[(batch_size - count):, :]
+#             ba = bb
+#         embeddings_list.append(embeddings)
+#     embeddings = embeddings_list[0] + embeddings_list[1]
+#     embeddings = sklearn.preprocessing.normalize(embeddings)
+#     actual_issame = np.asarray(issame_list)
+#     outname = os.path.join('temp.bin')
+#     with open(outname, 'wb') as f:
+#         pickle.dump((embeddings, issame_list),
+#                     f,
+#                     protocol=pickle.HIGHEST_PROTOCOL)
 
 
 # if __name__ == '__main__':
@@ -407,3 +408,11 @@ def dumpR(data_set,
 #     else:
 #         model = nets[0]
 #         dumpR(ver_list[0], model, args.batch_size, args.target)
+
+
+if __name__ == "__main__":
+    path = os.environ["DATASET_DIR"] + "/EvalDatasets/binfiles/lfw.bin"
+    data_list, issame_list = load_bin(path, (112, 112))
+
+    print(data_list[1].shape)
+    print(len(issame_list))
